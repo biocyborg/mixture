@@ -7468,6 +7468,12 @@ var oauth1_0a = {
 
 var OAuth = oauth1_0aExports;
 
+/**
+ *
+ * @param url
+ * @param options
+ * @returns
+ */
 async function mixture(url, options) {
   const {
     method,

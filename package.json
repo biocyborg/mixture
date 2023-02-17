@@ -3,6 +3,8 @@
   "version": "0.0.1",
   "description": "fetch request + woo",
   "type": "module",
+  "main": "./dist/index.js",
+  "types": "./index.d.ts",
   "scripts": {
     "start": "webpack",
     "build": "rollup -c"

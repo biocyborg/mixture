@@ -42,24 +42,7 @@ export default defineConfig([
     plugins: [dts()],
     output: {
       format: "es",
-      file: "dist/index.d.ts",
+      file: "index.d.ts",
     },
   },
 ]);
-
-// export default {
-//   input: "./src/index.ts",
-//   output: {
-//     file: "mixture.js",
-//     format: "es",
-//   },
-
-//   plugins: [
-//     commonjs(),
-//     resolve(),
-//     babel({
-//       babelHelpers: "bundled",
-//       extensions: [".ts"],
-//     }),
-//   ],
-// };
