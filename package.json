@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "description": "封装fetch请求与woo对http请求的加密",
   "type": "module",
-  "main": "./index.js",
+  "main": "./lib/mixture.js",
   "types": "./index.d.ts",
   "scripts": {
     "start": "webpack",

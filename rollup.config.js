@@ -9,7 +9,9 @@ import { defineConfig } from "rollup";
 
 export default defineConfig([
   {
-    input: "./src/index.ts",
+    input: {
+      mixture: "./src/mixture.ts",
+    },
     plugins: [
       commonjs(),
       resolve(),
@@ -19,13 +21,15 @@ export default defineConfig([
       }),
     ],
     output: {
+      // format: "es",
+      // file: "lib/mixture.js",
+      dir: "lib",
       format: "es",
-      file: "lib/mixture.js",
     },
   },
   /* 单独生成声明文件 */
   {
-    input: "./src/index.ts",
+    input: "./src/mixture.ts",
     plugins: [dts()],
     output: {
       format: "es",
