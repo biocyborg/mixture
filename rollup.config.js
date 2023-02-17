@@ -1,8 +1,6 @@
 import resolve from "@rollup/plugin-node-resolve";
 import babel from "@rollup/plugin-babel";
 
-import typescript from "@rollup/plugin-typescript";
-
 import commonjs from "@rollup/plugin-commonjs";
 
 import dts from "rollup-plugin-dts";
@@ -20,21 +18,10 @@ export default defineConfig([
         extensions: [".ts"],
       }),
     ],
-    output: [
-      {
-        format: "cjs",
-        file: "dist/mixture.js",
-      },
-      {
-        format: "module",
-        file: "dist/mixture.esm.js",
-      },
-      {
-        format: "umd",
-        file: "dist/mixture.min.js",
-        name: "PackageName",
-      },
-    ],
+    output: {
+      format: "es",
+      file: "lib/mixture.js",
+    },
   },
   /* 单独生成声明文件 */
   {

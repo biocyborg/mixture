@@ -1,9 +1,9 @@
 {
   "name": "mixture",
   "version": "0.0.1",
-  "description": "fetch request + woo",
+  "description": "封装fetch请求与woo对http请求的加密",
   "type": "module",
-  "main": "./dist/index.esm.js",
+  "main": "./index.js",
   "types": "./index.d.ts",
   "scripts": {
     "start": "webpack",
@@ -11,13 +11,6 @@
   },
   "author": "",
   "license": "ISC",
-  "repository": {
-    "type": "git",
-    "url": ""
-  },
-  "keywords": [
-    ""
-  ],
   "dependencies": {
     "@types/crypto-js": "^4.1.1",
     "buffer": "^6.0.3",
@@ -33,7 +26,6 @@
     "@rollup/plugin-babel": "^6.0.3",
     "@rollup/plugin-commonjs": "^24.0.1",
     "@rollup/plugin-node-resolve": "^15.0.1",
-    "@rollup/plugin-typescript": "^11.0.0",
     "@types/create-hmac": "^1.1.0",
     "rollup": "^3.15.0",
     "rollup-plugin-dts": "^5.2.0",
