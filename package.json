@@ -4,6 +4,8 @@
   "description": "fetch request + woo",
   "type": "module",
   "main": "./dist/index.js",
+  "module": "./dist/index.esm.js",
+  "unpkg": "./dist/index.js",
   "types": "./index.d.ts",
   "scripts": {
     "start": "webpack",
