@@ -13,6 +13,13 @@
   },
   "author": "",
   "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "keywords": [
+    ""
+  ],
   "dependencies": {
     "@types/crypto-js": "^4.1.1",
     "buffer": "^6.0.3",
