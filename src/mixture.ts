@@ -2,7 +2,6 @@ import CryptoJS from "crypto-js";
 import OAuth from "oauth-1.0a";
 
 import { mixtureOptionsProps, resultType, fetchConfig } from "./interface";
-import { domain_regular } from "./utils";
 
 /**
  *
@@ -104,7 +103,11 @@ async function mixture(url: string, options: mixtureOptionsProps) {
     if (new_domain?.slice(new_domain?.length - 1) === "/") {
       new_domain = new_domain?.substring(new_domain?.length - 1, 0);
     }
-    if (domain_regular.test(new_url)) {
+    if (
+      /^(http(s)?:\/\/)+([åäöÅÄÖàâèéêëîïôœùûüÿçÀÂÈÉÊËÎÏÔŒÙÛÜŸÇáßíóŠšŽžA-Za-z0-9\-]+\.)*([åäöÅÄÖàâèéêëîïôœùûüÿçÀÂÈÉÊËÎÏÔŒÙÛÜŸÇáßíóŠšŽžA-Za-z0-9\u4e00-\u9fa5\-]+)\.([åäöÅÄÖàâèéêëîïôœùûüÿçÀÂÈÉÊËÎÏÔŒÙÛÜŸÇáßíóŠšŽžA-Za-z\.]+)(\/)*([åäöÅÄÖàâèéêëîïôœùûüÿçÀÂÈÉÊËÎÏÔŒÙÛÜŸÇáßíóŠšŽž0-9A-Za-z\u4e00-\u9fa5\-](\/)*)*$/.test(
+        new_url
+      )
+    ) {
       request_url = new_url;
     } else {
       if (new_url.charAt(0) !== "/") {

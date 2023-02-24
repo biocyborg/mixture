@@ -15,5 +15,5 @@
     "isolatedModules": false,
     "noEmit": true
   },
-  "include": ["src/index.ts"]
+  "include": ["src/mixture.ts"]
 }
