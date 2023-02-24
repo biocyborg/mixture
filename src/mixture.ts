@@ -2,6 +2,7 @@ import CryptoJS from "crypto-js";
 import OAuth from "oauth-1.0a";
 
 import { mixtureOptionsProps, resultType, fetchConfig } from "./interface";
+import { domain_regular } from "./utils";
 
 /**
  *
@@ -11,23 +12,30 @@ import { mixtureOptionsProps, resultType, fetchConfig } from "./interface";
  */
 async function mixture(url: string, options: mixtureOptionsProps) {
   const {
-    method,
-    timeout,
-    headers,
-    body,
-    site,
-    parameter,
-    before,
-    after,
-    retry,
-    woo,
+    domain, // 域名
+    method, // 请求方式
+    timeout, // 超时时间
+    headers, // 请求头
+    body, // 请求体
+    variable, // url变量参数
+    parameter, // url拼接参数
+    before, // 请求前回调
+    after, // 请求后回调
+    retry, // 重试次数
+    shortenedCatalogue, // 请求失败后是否缩短url目录后重试
+    replacementProtocol, // 请求失败后是否替换协议后重试
+    woo, // 是否执行woo请求
   } = options;
+
+  // 最终返回数据格式
   let result: resultType = {
     status: 700,
     header: {},
     responder: null,
   };
 
+  // 域名
+  let new_domain = domain;
   // 请求url
   let new_url = url;
   // 请求方式
@@ -39,24 +47,46 @@ async function mixture(url: string, options: mixtureOptionsProps) {
   // 请求体
   const NEW_BODY = body;
   // url变量
-  const NEW_SITE = site || {};
+  const NEW_VARIABLE = variable || {};
+  // url 参数
+  const NEW_PARAMETER = parameter;
   // 请求前回调
   const NEW_BEFORE_FUNC_OBJ = before;
   // 请求后回调
-  const NEW_AFTER_FUNC = after;
+  const NEW_AFTER_FUNC_OBJ = after;
   // 重试次数
   let new_retry = retry || 1;
   // woo 请求参数
-  const NEW_WOO = woo || { domain: "", consumerKey: "", consumerSecret: "" };
-  // woo域名
-  let new_domain = NEW_WOO.domain;
-  // url 参数
-  const NEW_PARAMETER = parameter;
+  const NEW_WOO = woo || { consumerKey: "", consumerSecret: "" };
+
   // 请求是否成功
   let request_status = false;
 
+  // 是否缩短过目录
+  let is_shortened_catalogue = false;
+  // 是否已经替换协议
+  let is_replacement_protocol = false;
+
+  // 最终请求url
+  let request_url = "";
+  // 备份最终请求url
+  let backups_request_url = "";
+  // url
+  let static_request_url = "";
+
+  // 没有url报错
+  if (!new_url) {
+    throw new Error("url is required");
+  }
+
+  // 没有请求方式报错
+  if (!NEW_METHOD) {
+    throw new Error("method is required");
+  }
+
+  // 发送woo请求时 没有域名 key 或 secret 报错
   if (woo && Object.keys(woo).length) {
-    if (!NEW_WOO.domain) {
+    if (!domain) {
       throw new Error("domain is required");
     }
 
@@ -69,74 +99,47 @@ async function mixture(url: string, options: mixtureOptionsProps) {
     }
   }
 
-  if (!new_url) {
-    throw new Error("url is required");
-  }
-
-  if (!NEW_METHOD) {
-    throw new Error("method is required");
-  }
-
-  // 是否发送woo请求
-  if (woo && Object.keys(woo).length) {
-    // 判断是否是https
-    const IS_HTTPS = /^https/i.test(NEW_WOO.domain);
-
-    if (NEW_WOO.domain?.slice(NEW_WOO.domain?.length - 1) === "/") {
-      new_domain = NEW_WOO.domain?.substring(NEW_WOO.domain?.length - 1, 0);
+  // 处理请求地址
+  if (new_domain) {
+    if (new_domain?.slice(new_domain?.length - 1) === "/") {
+      new_domain = new_domain?.substring(new_domain?.length - 1, 0);
     }
-
-    if (IS_HTTPS) {
-      // 是https请求直接拼合url
-      new_url = `${new_domain}${new_url}?consumer_key=${NEW_WOO.consumerKey}&consumer_secret=${NEW_WOO.consumerSecret}`;
+    if (domain_regular.test(new_url)) {
+      request_url = new_url;
     } else {
-      // 不是https请求 执行加密程序
-      const data = {
-        consumer: {
-          key: NEW_WOO.consumerKey,
-          secret: NEW_WOO.consumerSecret,
-        },
-        signature_method: "HMAC-SHA256",
-        hash_function: (
-          base: string | CryptoJS.lib.WordArray,
-          key: string | CryptoJS.lib.WordArray
-        ) => {
-          const sha256 = CryptoJS.algo.HMAC.create(CryptoJS.algo.SHA256, key);
-          const res = CryptoJS.enc.Base64.stringify(
-            sha256.update(base).finalize()
-          );
-          return res;
-        },
-      };
+      if (new_url.charAt(0) !== "/") {
+        new_url = `/${new_url}`;
+      }
+      request_url = `${new_domain}${new_url}`;
+    }
+  } else {
+    request_url = new_url;
+  }
 
-      const ENCRYPTION_URL: Record<string, string> = new OAuth(data).authorize({
-        url: `${new_domain}${new_url}`,
-        method: NEW_METHOD,
-      }) as any;
+  // 如果url变量 有数据就将数据拼接到url中
+  if (NEW_VARIABLE && Object.keys(NEW_VARIABLE).length) {
+    for (const item in NEW_VARIABLE) {
+      if (Object.hasOwnProperty.call(NEW_VARIABLE, item)) {
+        request_url = request_url.replace(`{${item}}`, NEW_VARIABLE[item]);
+      }
+    }
+  }
 
-      if (ENCRYPTION_URL && Object.keys(ENCRYPTION_URL).length) {
-        for (const item in ENCRYPTION_URL) {
-          if (Object.hasOwnProperty.call(ENCRYPTION_URL, item)) {
-            const INDEX = Object.keys(ENCRYPTION_URL).indexOf(item);
-            if (!INDEX) {
-              new_url += `?${item}=${ENCRYPTION_URL[item]}`;
-            } else {
-              new_url += `&${item}=${ENCRYPTION_URL[item]}`;
-            }
+  // 将url参数添加到url中
+  if (NEW_PARAMETER && Object.keys(NEW_PARAMETER).length) {
+    for (const item in NEW_PARAMETER) {
+      if (Object.hasOwnProperty.call(NEW_PARAMETER, item)) {
+        if (request_url.includes("?")) {
+          request_url += `&${item}=${NEW_PARAMETER[item]}`;
+        } else {
+          const INDEX = Object.keys(NEW_PARAMETER).indexOf(item);
+          if (!INDEX) {
+            request_url += `?${item}=${NEW_PARAMETER[item]}`;
+          } else {
+            request_url += `&${item}=${NEW_PARAMETER[item]}`;
           }
         }
       }
-    }
-
-    new_url = `${new_domain}${new_url}`;
-  }
-
-  // 执行请求前回调
-  for (const item in NEW_BEFORE_FUNC_OBJ) {
-    if (Object.hasOwnProperty.call(NEW_BEFORE_FUNC_OBJ, item)) {
-      const element = NEW_BEFORE_FUNC_OBJ[item];
-      // eslint-disable-next-line no-await-in-loop
-      await element();
     }
   }
 
@@ -148,59 +151,91 @@ async function mixture(url: string, options: mixtureOptionsProps) {
     };
   }
 
-  // 如果url变量 有数据就将数据拼接到url中
-  if (NEW_SITE && Object.keys(NEW_SITE).length) {
-    for (const item in NEW_SITE) {
-      if (Object.hasOwnProperty.call(NEW_SITE, item)) {
-        new_url = new_url.replace(`{${item}}`, NEW_SITE[item]);
-      }
-    }
-  }
+  backups_request_url = request_url;
+  static_request_url = request_url;
 
-  // 将url参数添加到url中
-  if (NEW_PARAMETER && Object.keys(NEW_PARAMETER).length) {
-    for (const item in NEW_PARAMETER) {
-      if (Object.hasOwnProperty.call(NEW_PARAMETER, item)) {
-        if (new_url.includes("?")) {
-          new_url += `&${item}=${NEW_PARAMETER[item]}`;
-        } else {
-          const INDEX = Object.keys(NEW_PARAMETER).indexOf(item);
-          if (!INDEX) {
-            new_url += `?${item}=${NEW_PARAMETER[item]}`;
-          } else {
-            new_url += `&${item}=${NEW_PARAMETER[item]}`;
+  async function request() {
+    // 判断是否是https
+    const IS_HTTPS = /^https/i.test(request_url);
+    // 是否发送woo请求
+    if (woo && Object.keys(woo).length) {
+      // 不是https请求 执行加密程序
+      if (!IS_HTTPS) {
+        const data = {
+          consumer: {
+            key: NEW_WOO.consumerKey,
+            secret: NEW_WOO.consumerSecret,
+          },
+          signature_method: "HMAC-SHA256",
+          hash_function: (
+            base: string | CryptoJS.lib.WordArray,
+            key: string | CryptoJS.lib.WordArray
+          ) => {
+            const sha256 = CryptoJS.algo.HMAC.create(CryptoJS.algo.SHA256, key);
+            const res = CryptoJS.enc.Base64.stringify(
+              sha256.update(base).finalize()
+            );
+            return res;
+          },
+        };
+
+        const ENCRYPTION_URL: Record<string, string> = new OAuth(
+          data
+        ).authorize({
+          url: request_url,
+          method: NEW_METHOD,
+        }) as any;
+
+        if (ENCRYPTION_URL && Object.keys(ENCRYPTION_URL).length) {
+          for (const item in ENCRYPTION_URL) {
+            if (Object.hasOwnProperty.call(ENCRYPTION_URL, item)) {
+              if (request_url.includes("?")) {
+                request_url += `&${item}=${ENCRYPTION_URL[item]}`;
+              } else {
+                const INDEX = Object.keys(ENCRYPTION_URL).indexOf(item);
+                if (!INDEX) {
+                  request_url += `?${item}=${ENCRYPTION_URL[item]}`;
+                } else {
+                  request_url += `&${item}=${ENCRYPTION_URL[item]}`;
+                }
+              }
+            }
           }
         }
       }
     }
-  }
 
-  const controller = new AbortController();
-  const { signal } = controller;
-
-  const timer = setTimeout(() => {
-    controller.abort();
-    clearTimeout(timer);
-  }, NEW_TIMEOUT);
-
-  let config: fetchConfig = {
-    signal,
-    method: NEW_METHOD,
-    headers: new_headers,
-  };
-
-  if (!["get", "head"].includes(NEW_METHOD)) {
-    config = {
-      ...config,
-      body: JSON.stringify(NEW_BODY),
+    const controller = new AbortController();
+    const { signal } = controller;
+    const timer = setTimeout(() => {
+      controller.abort();
+      clearTimeout(timer);
+    }, NEW_TIMEOUT);
+    let config: fetchConfig = {
+      signal,
+      method: NEW_METHOD,
+      headers: new_headers,
     };
-  }
+    if (!["get", "head"].includes(NEW_METHOD)) {
+      config = {
+        ...config,
+        body: JSON.stringify(NEW_BODY),
+      };
+    }
 
-  async function request() {
+    // 执行请求前回调
+    for (const item in NEW_BEFORE_FUNC_OBJ) {
+      if (Object.hasOwnProperty.call(NEW_BEFORE_FUNC_OBJ, item)) {
+        const element = NEW_BEFORE_FUNC_OBJ[item];
+        // eslint-disable-next-line no-await-in-loop
+        await element(request_url, config);
+      }
+    }
+
     let successful: resultType = result;
     let failure: null | string = null;
     return (
-      fetch(new_url, config)
+      fetch(request_url, config)
         .then(async (response) => {
           const HEADER_OBJ: Record<string, string> = {};
           response?.headers?.forEach((v, k) => {
@@ -249,15 +284,76 @@ async function mixture(url: string, options: mixtureOptionsProps) {
         })
         .finally(async () => {
           clearTimeout(timer);
+
           // 执行请求后回调
-          if (NEW_AFTER_FUNC) await NEW_AFTER_FUNC(successful, failure);
+          for (const item in NEW_AFTER_FUNC_OBJ) {
+            if (Object.hasOwnProperty.call(NEW_AFTER_FUNC_OBJ, item)) {
+              const element = NEW_AFTER_FUNC_OBJ[item];
+              // eslint-disable-next-line no-await-in-loop
+              await element(successful, failure);
+            }
+          }
+
+          // 缩短目录
+          if (shortenedCatalogue && !is_shortened_catalogue) {
+            // 拆分参数
+            const cutting_parameter =
+              backups_request_url?.split(/(?=\/wp-json)/g);
+
+            // 拆分目录
+            const cutting_catalogue = cutting_parameter[0]?.split("/");
+
+            if (cutting_catalogue.length > 3) {
+              // 删除目录数组最后一个元素
+              cutting_catalogue.pop();
+
+              // 拼合目录
+              const joint_atalogue = cutting_catalogue.join("/");
+
+              // 替换 "拆分参数" 数组第一个元素
+              cutting_parameter.splice(0, 1, joint_atalogue);
+
+              backups_request_url = cutting_parameter.join("");
+              request_url = backups_request_url;
+              await request();
+              return;
+            } else {
+              is_shortened_catalogue = true;
+              request_url = static_request_url;
+            }
+          }
+
+          // 替换协议
+          if (replacementProtocol && !is_replacement_protocol) {
+            is_replacement_protocol = true;
+            if (IS_HTTPS) {
+              request_url = backups_request_url?.replace("https://", "http://");
+            } else {
+              request_url = backups_request_url?.replace("https://", "http://");
+            }
+            await request();
+            return;
+          }
+
+          if (is_replacement_protocol) {
+            request_url = static_request_url;
+          }
 
           if (!request_status && new_retry) {
+            // 重试
             for (let index = 0; index < new_retry; index += 1) {
               new_retry -= 1;
 
+              backups_request_url = static_request_url;
+
+              // 是否缩短过目录
+              is_shortened_catalogue = false;
+              // 是否已经替换协议
+              is_replacement_protocol = false;
+
               // eslint-disable-next-line no-await-in-loop
               await request();
+              return;
             }
           }
         })
