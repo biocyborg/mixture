@@ -1,31 +1,79 @@
 import CryptoJS from "crypto-js";
 import OAuth from "oauth-1.0a";
 
-import { mixtureOptionsProps, resultType, fetchConfig } from "./interface";
+import { domain_regular } from "./utils";
+
+// import { mixtureOptionsProps, resultType, fetchConfig } from "./interface";
+export interface resultType {
+  status: number;
+  header?: Record<string, string>;
+  responder?: null | any;
+}
+
+export interface fetchConfig {
+  signal: AbortSignal;
+  method: string;
+  headers?: Record<string, string>;
+  body?: string;
+}
+
+export interface mixtureOptionsProps {
+  domain?: string; // 域名
+  method?: string; // 请求方式
+  timeout?: number; // 超时时间
+  headers?: Record<string, string>; // 请求头
+  body?: Record<string, string>; // 请求体
+  variable?: Record<string, string>; //
+  parameter?: Record<string, string>; //
+  before?: Record<string, (request_url: string, config: any) => void>; // 请求前回调
+  after?: Record<
+    string,
+    (successful: resultType, failure: null | string) => void
+  >; // 请求后回调
+  retry?: number; // 重试次数
+  shortenedCatalogue?: Boolean; // 缩短目录
+  replacementProtocol?: Boolean; // 替换协议
+  woo?: { consumerKey: string; consumerSecret: string }; // woo请求 域名 key secret
+}
 
 /**
  *
- * @param url
- * @param options
- * @returns
+ * @param url 接口地址
+ * @param {
+ *  domain = "", // 域名 string
+ *  method = "get", // 请求方式 string
+ *  timeout = 60000, // 超时时间 number
+ *  headers = undefined, // 请求头 Record<string, string>;
+ *  body = undefined, // 请求体 Record<string, string>;
+ *  variable = {}, // url变量参数 Record<string, string>;
+ *  parameter = undefined, // url拼接参数 Record<string, string>;
+ *  before = undefined, // 请求前回调 Record<string, (request_url: string, config: any) => void>;
+ *  after = undefined, // 请求后回调 Record<string, (successful: {status: number; header?: Record<string, string>; responder?: null | any; }, failure: null | string) => void>;
+ *  retry = 1, // 重试次数 number
+ *  shortenedCatalogue = false, // 请求失败后是否缩短url目录后重试 Boolean
+ *  replacementProtocol = false, // 请求失败后是否替换协议后重试 Boolean
+ *  woo = undefined, // 是否执行woo请求 { consumerKey: string; consumerSecret: string }
+ *}
+ * @returns Promise<{status: number; header?: Record<string, string>; responder?: null | any; }>
  */
-async function mixture(url: string, options: mixtureOptionsProps) {
-  const {
-    domain, // 域名
-    method, // 请求方式
-    timeout, // 超时时间
-    headers, // 请求头
-    body, // 请求体
-    variable, // url变量参数
-    parameter, // url拼接参数
-    before, // 请求前回调
-    after, // 请求后回调
-    retry, // 重试次数
-    shortenedCatalogue, // 请求失败后是否缩短url目录后重试
-    replacementProtocol, // 请求失败后是否替换协议后重试
-    woo, // 是否执行woo请求
-  } = options;
-
+async function mixture(
+  url: string,
+  {
+    domain = "", // 域名
+    method = "get", // 请求方式
+    timeout = 60000, // 超时时间
+    headers = undefined, // 请求头
+    body = undefined, // 请求体
+    variable = {}, // url变量参数
+    parameter = undefined, // url拼接参数
+    before = undefined, // 请求前回调
+    after = undefined, // 请求后回调
+    retry = 1, // 重试次数
+    shortenedCatalogue = false, // 请求失败后是否缩短url目录后重试
+    replacementProtocol = false, // 请求失败后是否替换协议后重试
+    woo = undefined, // 是否执行woo请求
+  }: mixtureOptionsProps = {}
+) {
   // 最终返回数据格式
   let result: resultType = {
     status: 700,
@@ -40,13 +88,13 @@ async function mixture(url: string, options: mixtureOptionsProps) {
   // 请求方式
   const NEW_METHOD = method;
   // 超时时间
-  const NEW_TIMEOUT = timeout || 60000;
+  const NEW_TIMEOUT = timeout;
   // 请求头
   let new_headers = headers;
   // 请求体
   const NEW_BODY = body;
   // url变量
-  const NEW_VARIABLE = variable || {};
+  const NEW_VARIABLE = variable;
   // url 参数
   const NEW_PARAMETER = parameter;
   // 请求前回调
@@ -54,7 +102,7 @@ async function mixture(url: string, options: mixtureOptionsProps) {
   // 请求后回调
   const NEW_AFTER_FUNC_OBJ = after;
   // 重试次数
-  let new_retry = retry || 1;
+  let new_retry = retry;
   // woo 请求参数
   const NEW_WOO = woo || { consumerKey: "", consumerSecret: "" };
 
@@ -103,11 +151,7 @@ async function mixture(url: string, options: mixtureOptionsProps) {
     if (new_domain?.slice(new_domain?.length - 1) === "/") {
       new_domain = new_domain?.substring(new_domain?.length - 1, 0);
     }
-    if (
-      /^(http(s)?:\/\/)+([åäöÅÄÖàâèéêëîïôœùûüÿçÀÂÈÉÊËÎÏÔŒÙÛÜŸÇáßíóŠšŽžA-Za-z0-9\-]+\.)*([åäöÅÄÖàâèéêëîïôœùûüÿçÀÂÈÉÊËÎÏÔŒÙÛÜŸÇáßíóŠšŽžA-Za-z0-9\u4e00-\u9fa5\-]+)\.([åäöÅÄÖàâèéêëîïôœùûüÿçÀÂÈÉÊËÎÏÔŒÙÛÜŸÇáßíóŠšŽžA-Za-z\.]+)(\/)*([åäöÅÄÖàâèéêëîïôœùûüÿçÀÂÈÉÊËÎÏÔŒÙÛÜŸÇáßíóŠšŽž0-9A-Za-z\u4e00-\u9fa5\-](\/)*)*$/.test(
-        new_url
-      )
-    ) {
+    if (domain_regular.test(new_url)) {
       request_url = new_url;
     } else {
       if (new_url.charAt(0) !== "/") {
@@ -204,6 +248,13 @@ async function mixture(url: string, options: mixtureOptionsProps) {
               }
             }
           }
+        }
+      } else {
+        // 是https请求直接拼合url
+        if (request_url.includes("?")) {
+          request_url = `${request_url}&consumer_key=${NEW_WOO.consumerKey}&consumer_secret=${NEW_WOO.consumerSecret}`;
+        } else {
+          request_url = `${request_url}?consumer_key=${NEW_WOO.consumerKey}&consumer_secret=${NEW_WOO.consumerSecret}`;
         }
       }
     }
@@ -347,6 +398,7 @@ async function mixture(url: string, options: mixtureOptionsProps) {
             for (let index = 0; index < new_retry; index += 1) {
               new_retry -= 1;
 
+              request_url = static_request_url;
               backups_request_url = static_request_url;
 
               // 是否缩短过目录

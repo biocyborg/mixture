@@ -13,12 +13,12 @@ export default defineConfig([
       mixture: "./src/mixture.ts",
     },
     plugins: [
-      commonjs(),
       resolve(),
       babel({
         babelHelpers: "bundled",
         extensions: [".ts"],
       }),
+      commonjs({ extensions: [".js", ".ts"] }),
     ],
     output: {
       // format: "es",
@@ -30,7 +30,15 @@ export default defineConfig([
   /* 单独生成声明文件 */
   {
     input: "./src/mixture.ts",
-    plugins: [dts()],
+    plugins: [
+      resolve(),
+      babel({
+        babelHelpers: "bundled",
+        extensions: [".ts"],
+      }),
+      commonjs({ extensions: [".js", ".ts"] }),
+      dts(),
+    ],
     output: {
       format: "es",
       file: "index.d.ts",

@@ -13,7 +13,7 @@ export interface fetchConfig {
 
 export interface mixtureOptionsProps {
   domain?: string; // 域名
-  method: string; // 请求方式
+  method?: string; // 请求方式
   timeout?: number; // 超时时间
   headers?: Record<string, string>; // 请求头
   body?: Record<string, string>; // 请求体
